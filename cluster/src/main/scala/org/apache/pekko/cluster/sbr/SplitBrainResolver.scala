@@ -110,7 +110,7 @@ import pekko.remote.artery.ThisActorSystemQuarantinedEvent
   private val cluster = Cluster(context.system)
 
   log.info(
-    s"SBR started. Config: strategy [{}], stable-after [{}], down-all-when-unstable [{}], selfUniqueAddress [{}], selfDc [$selfDc].",
+    s"SBR started. Config: strategy [{}], stable-after [{}], down-all-when-unstable [{}], selfUniqueAddress [{}], role [${strategy.role}], selfDc [$selfDc]",
     Logging.simpleName(strategy.getClass),
     stableAfter.toCoarsest,
     if (downAllWhenUnstable == Duration.Zero) "off" else downAllWhenUnstable.toCoarsest,
@@ -207,7 +207,7 @@ import pekko.remote.artery.ThisActorSystemQuarantinedEvent
 
   private def resetReachabilityChangedStatsIfAllUnreachableDowned(): Unit = {
     if (!reachabilityChangedStats.isEmpty && strategy.isAllUnreachableDownOrExiting) {
-      log.debug("SBR resetting reachability stats, after all unreachable healed, downed or removed")
+      log.info("SBR resetting reachability stats, after all unreachable healed, downed or removed")
       resetReachabilityChangedStats()
     }
   }
@@ -322,7 +322,7 @@ import pekko.remote.artery.ThisActorSystemQuarantinedEvent
         actOnDecision(DownAll)
       } else if (!downAllWhenUnstableEnabled && durationSinceLatestChange > (stableAfter * 2)) {
         // downAllWhenUnstable is disabled but reset for meaningful logging
-        log.debug("SBR no reachability changes within {} ms, resetting stats", (stableAfter * 2).toMillis)
+        log.info("SBR no reachability changes within {} ms, resetting stats", (stableAfter * 2).toMillis)
         resetReachabilityChangedStats()
       }
     }
