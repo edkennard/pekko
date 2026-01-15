@@ -11,7 +11,7 @@ import net.bzzt.reproduciblebuilds.ReproducibleBuildsPlugin.reproducibleBuildsCh
 
 scalaVersion := Dependencies.allScalaVersions.head
 
-ThisBuild / version := "1.4.0-topaz"
+ThisBuild / version := "1.4.0"
 //ThisBuild / versionScheme := Some(VersionScheme.SemVerSpec)
 sourceDistName := "apache-pekko"
 sourceDistIncubating := false
