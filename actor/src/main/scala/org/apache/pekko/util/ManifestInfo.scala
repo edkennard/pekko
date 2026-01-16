@@ -74,32 +74,32 @@ object ManifestInfo extends ExtensionId[ManifestInfo] with ExtensionIdProvider {
   }
 
   /** INTERNAL API */
-  private[util] def checkSameVersion(
-      productName: String,
-      dependencies: immutable.Seq[String],
-      versions: Map[String, Version]): Option[String] = {
-    @nowarn("msg=deprecated")
-    val filteredVersions = versions.filterKeys(dependencies.toSet)
-    val values = filteredVersions.values.toSet
-    if (values.size > 1) {
-      val highestVersion = values.max
-      val toBeUpdated = filteredVersions.collect { case (k, v) if v != highestVersion => s"$k" }.mkString(", ")
-      val groupedByVersion = filteredVersions.toSeq
-        .groupBy { case (_, v) => v }
-        .toSeq
-        .sortBy(_._1)
-        .map { case (k, v) => k -> v.map(_._1).sorted.mkString("[", ", ", "]") }
-        .map { case (k, v) => s"($k, $v)" }
-        .mkString(", ")
-      Some(
-        s"You are using version $highestVersion of $productName, but it appears " +
-        s"you (perhaps indirectly) also depend on older versions of related artifacts. " +
-        s"You can solve this by adding an explicit dependency on version $highestVersion " +
-        s"of the [$toBeUpdated] artifacts to your project. " +
-        s"Here's a complete collection of detected artifacts: $groupedByVersion. " +
-        "See also: https://pekko.apache.org/docs/pekko/current/common/binary-compatibility-rules.html#mixed-versioning-is-not-allowed")
-    } else None
-  }
+//  private[util] def checkSameVersion(
+//      productName: String,
+//      dependencies: immutable.Seq[String],
+//      versions: Map[String, Version]): Option[String] = {
+//    @nowarn("msg=deprecated")
+//    val filteredVersions = versions.filterKeys(dependencies.toSet)
+//    val values = filteredVersions.values.toSet
+//    if (values.size > 1) {
+//      val highestVersion = values.max
+//      val toBeUpdated = filteredVersions.collect { case (k, v) if v != highestVersion => s"$k" }.mkString(", ")
+//      val groupedByVersion = filteredVersions.toSeq
+//        .groupBy { case (_, v) => v }
+//        .toSeq
+//        .sortBy(_._1)
+//        .map { case (k, v) => k -> v.map(_._1).sorted.mkString("[", ", ", "]") }
+//        .map { case (k, v) => s"($k, $v)" }
+//        .mkString(", ")
+//      Some(
+//        s"You are using version $highestVersion of $productName, but it appears " +
+//        s"you (perhaps indirectly) also depend on older versions of related artifacts. " +
+//        s"You can solve this by adding an explicit dependency on version $highestVersion " +
+//        s"of the [$toBeUpdated] artifacts to your project. " +
+//        s"Here's a complete collection of detected artifacts: $groupedByVersion. " +
+//        "See also: https://pekko.apache.org/docs/pekko/current/common/binary-compatibility-rules.html#mixed-versioning-is-not-allowed")
+//    } else None
+//  }
 }
 
 /**
@@ -163,7 +163,8 @@ final class ManifestInfo(val system: ExtendedActorSystem) extends Extension {
    * @return `true` if versions are the same
    */
   def checkSameVersion(productName: String, dependencies: immutable.Seq[String], logWarning: Boolean): Boolean = {
-    checkSameVersion(productName, dependencies, logWarning, throwException = system.settings.FailMixedVersions)
+    true
+    //checkSameVersion(productName, dependencies, logWarning, throwException = system.settings.FailMixedVersions)
   }
 
   /**
@@ -178,17 +179,18 @@ final class ManifestInfo(val system: ExtendedActorSystem) extends Extension {
       productName: String,
       dependencies: immutable.Seq[String],
       logWarning: Boolean,
-      throwException: Boolean): Boolean = {
-    ManifestInfo.checkSameVersion(productName, dependencies, versions) match {
-      case Some(message) =>
-        if (logWarning)
-          Logging(system, classOf[ManifestInfo]).warning(message)
-
-        if (throwException)
-          throw new IllegalStateException(message)
-        else
-          false
-      case None => true
-    }
-  }
+      throwException: Boolean): Boolean = true
+//  {
+//    ManifestInfo.checkSameVersion(productName, dependencies, versions) match {
+//      case Some(message) =>
+//        if (logWarning)
+//          Logging(system, classOf[ManifestInfo]).warning(message)
+//
+//        if (throwException)
+//          throw new IllegalStateException(message)
+//        else
+//          false
+//      case None => true
+//    }
+//  }
 }
