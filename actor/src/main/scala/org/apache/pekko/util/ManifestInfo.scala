@@ -19,7 +19,7 @@ import java.util.jar.Manifest
 
 import scala.collection.immutable
 
-import scala.annotation.nowarn
+//import scala.annotation.nowarn
 
 import org.apache.pekko
 import pekko.actor.ActorSystem
