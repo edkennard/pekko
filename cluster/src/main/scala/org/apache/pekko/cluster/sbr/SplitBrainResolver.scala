@@ -308,18 +308,22 @@ import pekko.remote.artery.ThisActorSystemQuarantinedEvent
   private def tick(): Unit = {
     // note the DownAll due to instability is running on all nodes to make that decision as quickly and
     // aggressively as possible if time is out
+    // TODO Change this so it's not running on all nodes, but rather only the seeds
     if (reachabilityChangedStats.changeCount > 0) {
       val now = System.nanoTime()
       val durationSinceLatestChange = (now - reachabilityChangedStats.latestChangeTimestamp).nanos
       val durationSinceFirstChange = (now - reachabilityChangedStats.firstChangeTimestamp).nanos
 
       val downAllWhenUnstableEnabled = downAllWhenUnstable > Duration.Zero
+
+      //log.info(s"SBR tick had non-zero reachability change count of ${reachabilityChangedStats.changeCount}, leader = $leader, selfMemberAdded = $selfMemberAdded, durationSinceFirstChange = ${durationSinceFirstChange.toSeconds}s, stableAfter + downAllWhenUnstable = ${(stableAfter + downAllWhenUnstable).toSeconds}s")
+
       if (downAllWhenUnstableEnabled && durationSinceFirstChange > (stableAfter + downAllWhenUnstable)) {
-        log.warning(
+        log.info(
           ClusterLogMarker.sbrInstability,
-          "SBR detected instability and will down all nodes: {}",
+          "SBR ***WOULD*** have detected instability due to downAllWhenUnstable being enabled and reachability changes and would have downed all nodes: {}",
           reachabilityChangedStats)
-        actOnDecision(DownAll)
+//        actOnDecision(DownAll)
       } else if (!downAllWhenUnstableEnabled && durationSinceLatestChange > (stableAfter * 2)) {
         // downAllWhenUnstable is disabled but reset for meaningful logging
         log.info("SBR no reachability changes within {} ms, resetting stats", (stableAfter * 2).toMillis)
@@ -342,7 +346,7 @@ import pekko.remote.artery.ThisActorSystemQuarantinedEvent
                 if (decision.acquireDelay == Duration.Zero)
                   acquireLease() // reply message is AcquireLeaseResult
                 else {
-                  log.debug("SBR delayed attempt to acquire lease for [{} ms]", decision.acquireDelay.toMillis)
+                  log.info("SBR delayed attempt to acquire lease for [{} ms]", decision.acquireDelay.toMillis)
                   timers.startSingleTimer(AcquireLease, AcquireLease, decision.acquireDelay)
                 }
                 context.become(waitingForLease(decision))
@@ -497,26 +501,26 @@ import pekko.remote.artery.ThisActorSystemQuarantinedEvent
 
   def unreachableMember(m: Member): Unit = {
     if (m.uniqueAddress != selfUniqueAddress && m.dataCenter == selfDc) {
-      log.debug("SBR unreachableMember [{}]", m)
+      log.info("SBR unreachableMember [{}]", m)
       mutateMemberInfo(resetStable = true) { () =>
         strategy.addUnreachable(m)
         updateReachabilityChangedStats()
         resetReachabilityChangedStatsIfAllUnreachableDowned()
         if (!reachabilityChangedStats.isEmpty)
-          log.debug("SBR noticed {}", reachabilityChangedStats)
+          log.info("SBR noticed {}", reachabilityChangedStats)
       }
     }
   }
 
   def reachableMember(m: Member): Unit = {
     if (m.uniqueAddress != selfUniqueAddress && m.dataCenter == selfDc) {
-      log.debug("SBR reachableMember [{}]", m)
+      log.info("SBR reachableMember [{}]", m)
       mutateMemberInfo(resetStable = true) { () =>
         strategy.addReachable(m)
         updateReachabilityChangedStats()
         resetReachabilityChangedStatsIfAllUnreachableDowned()
         if (!reachabilityChangedStats.isEmpty)
-          log.debug("SBR noticed {}", reachabilityChangedStats)
+          log.info("SBR noticed {}", reachabilityChangedStats)
       }
     }
   }
@@ -555,7 +559,7 @@ import pekko.remote.artery.ThisActorSystemQuarantinedEvent
 
   def addUp(m: Member): Unit = {
     if (selfDc == m.dataCenter) {
-      log.debug("SBR add Up [{}]", m)
+      log.info("SBR add Up [{}]", m)
       mutateMemberInfo(resetStable = true) { () =>
         strategy.add(m)
         if (m.uniqueAddress == selfUniqueAddress) mutateResponsibilityInfo { () =>
@@ -579,7 +583,7 @@ import pekko.remote.artery.ThisActorSystemQuarantinedEvent
 
   def leaving(m: Member): Unit = {
     if (selfDc == m.dataCenter) {
-      log.debug("SBR leaving [{}]", m)
+      log.info("SBR leaving [{}]", m)
       mutateMemberInfo(resetStable = false) { () =>
         strategy.add(m)
       }
@@ -588,7 +592,7 @@ import pekko.remote.artery.ThisActorSystemQuarantinedEvent
 
   def exited(m: Member): Unit = {
     if (selfDc == m.dataCenter) {
-      log.debug("SBR exited [{}]", m)
+      log.info("SBR exited [{}]", m)
       mutateMemberInfo(resetStable = true) { () =>
         strategy.add(m)
       }
@@ -597,7 +601,7 @@ import pekko.remote.artery.ThisActorSystemQuarantinedEvent
 
   def addJoining(m: Member): Unit = {
     if (selfDc == m.dataCenter) {
-      log.debug("SBR add Joining/WeaklyUp [{}]", m)
+      log.info("SBR add Joining/WeaklyUp [{}]", m)
       strategy.add(m)
     }
   }
@@ -616,7 +620,7 @@ import pekko.remote.artery.ThisActorSystemQuarantinedEvent
         context.stop(self)
       else
         mutateMemberInfo(resetStable = false) { () =>
-          log.debug("SBR remove [{}]", m)
+          log.info("SBR remove [{}]", m)
           strategy.remove(m)
 
           resetReachabilityChangedStatsIfAllUnreachableDowned()
@@ -640,7 +644,7 @@ import pekko.remote.artery.ThisActorSystemQuarantinedEvent
     implicit val ec: ExecutionContext = internalDispatcher
     strategy.lease.foreach { l =>
       if (releaseLeaseCondition != NoLease) {
-        log.debug("SBR releasing lease")
+        log.info("SBR releasing lease")
         l.release().recover { case _ => false }.map(ReleaseLeaseResult.apply).pipeTo(self)
       }
     }
